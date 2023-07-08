@@ -1,0 +1,12 @@
+Listen: 127.0.0.1:10086
+
+Mysql:
+#  Link: root:mysql@tcp(127.0.0.1:3306)/dailyfresh?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
+  Username: root
+  Password: mysql
+  Address: 127.0.0.1:3306
+  DBName: blog
+
+
+#Sqlite:
+#  Link: ./admin.db
