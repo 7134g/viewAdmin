@@ -42,6 +42,6 @@ func run(c *view.Config) {
 	serve := gin.Default()
 	router.InitRouter(serve, c)
 
-	log.Printf("Starting server at %s...\n", c.Listen)
+	log.Printf("Starting admin server at %s...\n", c.Listen)
 	log.Println(serve.Run(c.Listen))
 }

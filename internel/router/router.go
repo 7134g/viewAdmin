@@ -2,12 +2,13 @@ package router
 
 import (
 	"github.com/7134g/viewAdmin/internel/handle"
+	"github.com/7134g/viewAdmin/internel/middlerware"
 	"github.com/7134g/viewAdmin/internel/view"
 	"github.com/gin-gonic/gin"
 )
 
 func InitRouter(r *gin.Engine, c *view.Config) {
-	baseApi := r.Group("/")
+	baseApi := r.Group("/", middlerware.CorsMiddleware())
 
 	baseApi.GET("/", handle.HomeHandler(c))
 

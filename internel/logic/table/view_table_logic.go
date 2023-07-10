@@ -59,7 +59,9 @@ func parseTable(m map[string]interface{}) map[string]interface{} {
 		line = strings.TrimLeft(line, " ")
 		line = strings.TrimRight(line, " ")
 		fields := strings.Split(line, " ")
-		result[fields[0]] = fields[1]
+		key := strings.ReplaceAll(fields[0], "`", "")
+		value := fields[1]
+		result[key] = value
 	}
 	return result
 }
