@@ -10,3 +10,7 @@ Mysql:
 
 #Sqlite:
 #  Link: ./admin.db
+
+Mongo:
+  Uri: mongodb://127.0.0.1:27017
+  DBName: test
