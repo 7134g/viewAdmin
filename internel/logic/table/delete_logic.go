@@ -19,7 +19,7 @@ type Delete struct {
 
 	ID        string `form:"id"`
 	TableName string `form:"table_name"`
-	DbType    string `form:"db_type"`
+	DbType    string `form:"db_type,default=mysql"`
 }
 
 func NewDeleteLogic(c *view.Config) Delete {

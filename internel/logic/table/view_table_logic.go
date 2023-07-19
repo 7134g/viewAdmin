@@ -16,7 +16,7 @@ import (
 
 type ViewTable struct {
 	cfg    *view.Config
-	DbType string `form:"db_type"`
+	DbType string `form:"db_type,default=mysql"`
 }
 
 func NewViewTableLogic(c *view.Config) ViewTable {

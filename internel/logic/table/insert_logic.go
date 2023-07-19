@@ -15,7 +15,7 @@ type Insert struct {
 	cfg *view.Config
 
 	TableName string `json:"table_name"`
-	DbType    string `json:"db_type"`
+	DbType    string `json:"db_type,default=mysql"`
 
 	InsertData map[string]interface{} `json:"insert_data"`
 }

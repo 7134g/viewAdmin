@@ -18,7 +18,7 @@ type List struct {
 	cfg *view.Config
 
 	TableName string `json:"table_name"`
-	DbType    string `json:"db_type"`
+	DbType    string `json:"db_type,default=mysql"`
 
 	db.MysqlQueryParams
 }
