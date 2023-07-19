@@ -2,7 +2,6 @@ package table
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/7134g/viewAdmin/db"
 	"github.com/7134g/viewAdmin/internel/serve"
@@ -16,7 +15,8 @@ import (
 )
 
 type ViewTable struct {
-	cfg *view.Config
+	cfg    *view.Config
+	DbType string `form:"db_type"`
 }
 
 func NewViewTableLogic(c *view.Config) ViewTable {
@@ -24,31 +24,31 @@ func NewViewTableLogic(c *view.Config) ViewTable {
 }
 
 func (h *ViewTable) ViewTable(ctx *serve.BaseContext) (interface{}, error) {
-	dbType, ok := ctx.GetQuery("db_type")
-	if !ok {
-		return nil, errors.New("need db_type")
+	if err := ctx.ShouldBindQuery(h); err != nil {
+		return nil, err
 	}
 
 	table := make(map[string]map[string]interface{})
-	switch dbType {
+	switch h.DbType {
 	case db.SqliteType, db.MysqlType:
-		tbn := h.getTableNameByGorm(dbType)
+		tbn := h.getTableNameByGorm()
 		if tbn == nil {
 			return nil, nil
 		}
-		table = h.getTableStructByGorm(dbType, tbn)
+		table = h.getTableStructByGorm(tbn)
 	case db.MongoType:
-		tbn := h.getTableNameByMongo(dbType)
+		tbn := h.getTableNameByMongo()
 		if tbn == nil {
 			return nil, nil
 		}
+		table = h.getTableStructByMongo(tbn)
 	}
 
 	return table, nil
 }
 
-func (h *ViewTable) getTableNameByGorm(dbType string) []string {
-	idb := h.cfg.DBS[dbType]
+func (h *ViewTable) getTableNameByGorm() []string {
+	idb := h.cfg.DBS[h.DbType]
 	_db, ok := idb.Conn.(*gorm.DB)
 	if !ok {
 		return nil
@@ -63,12 +63,12 @@ func (h *ViewTable) getTableNameByGorm(dbType string) []string {
 	return tablesName
 }
 
-func (h *ViewTable) getTableStructByGorm(dbType string, tbn []string) map[string]map[string]interface{} {
+func (h *ViewTable) getTableStructByGorm(tbn []string) map[string]map[string]interface{} {
 	table := make(map[string]map[string]interface{})
 	for _, name := range tbn {
 		var m map[string]interface{}
 		sqlScript := fmt.Sprintf(`SHOW CREATE TABLE %s`, name)
-		idb := h.cfg.DBS[dbType]
+		idb := h.cfg.DBS[h.DbType]
 		_db, ok := idb.Conn.(*gorm.DB)
 		if !ok {
 			return nil
@@ -127,8 +127,8 @@ func (h *ViewTable) skip(line string) bool {
 	}
 }
 
-func (h *ViewTable) getTableNameByMongo(dbType string) []string {
-	idb := h.cfg.DBS[dbType]
+func (h *ViewTable) getTableNameByMongo() []string {
+	idb := h.cfg.DBS[h.DbType]
 	_db, ok := idb.Conn.(*mongo.Client)
 	if !ok {
 		return nil
@@ -142,8 +142,8 @@ func (h *ViewTable) getTableNameByMongo(dbType string) []string {
 	return collections
 }
 
-func (h *ViewTable) getTableStructByMongo(dbType string, tbn []string) map[string]map[string]interface{} {
-	idb := h.cfg.DBS[dbType]
+func (h *ViewTable) getTableStructByMongo(tbn []string) map[string]map[string]interface{} {
+	idb := h.cfg.DBS[h.DbType]
 	client, ok := idb.Conn.(*mongo.Client)
 	if !ok {
 		return nil

@@ -7,7 +7,6 @@ import (
 	"github.com/7134g/viewAdmin/internel/serve"
 	"github.com/7134g/viewAdmin/internel/view"
 	"github.com/Masterminds/squirrel"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
 )
@@ -15,21 +14,21 @@ import (
 type Insert struct {
 	cfg *view.Config
 
-	TableName string `query:"table_name"`
-	DbType    string `query:"db_type"`
+	TableName string `json:"table_name"`
+	DbType    string `json:"db_type"`
 
-	insertData map[string]interface{}
+	InsertData map[string]interface{} `json:"insert_data"`
 }
 
 func NewInsertLogic(c *view.Config) Insert {
-	return Insert{cfg: c, insertData: map[string]interface{}{}}
+	return Insert{cfg: c, InsertData: map[string]interface{}{}}
 }
 
 func (h *Insert) Insert(ctx *serve.BaseContext) (interface{}, error) {
-	if err := ctx.ShouldBindQuery(&h.insertData); err != nil {
+	if err := ctx.ShouldBindJSON(h); err != nil {
 		return nil, err
 	}
-	insertData, err := db.FixJsonData(h.insertData)
+	insertData, err := db.FixJsonData(h.InsertData)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +82,7 @@ func (h *Insert) insertByMongo(insertData map[string]interface{}) error {
 	_db := client.Database(idb.DBName)
 	collection := _db.Collection(h.TableName)
 
-	_, err := collection.InsertOne(context.Background(), bson.D{{"$set", insertData}})
+	_, err := collection.InsertOne(context.Background(), insertData)
 	if err != nil {
 		return err
 	}

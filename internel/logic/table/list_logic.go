@@ -28,7 +28,7 @@ func NewListLogic(c *view.Config) List {
 }
 
 func (h *List) List(ctx *serve.BaseContext) (resp interface{}, err error) {
-	if err := ctx.ShouldBind(h); err != nil {
+	if err := ctx.ShouldBindJSON(h); err != nil {
 		return nil, err
 	}
 

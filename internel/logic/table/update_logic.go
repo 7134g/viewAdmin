@@ -7,6 +7,8 @@ import (
 	"github.com/7134g/viewAdmin/internel/serve"
 	"github.com/7134g/viewAdmin/internel/view"
 	"github.com/Masterminds/squirrel"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
 )
@@ -14,10 +16,10 @@ import (
 type Update struct {
 	cfg *view.Config
 
-	TableName  string `json:"table_name"`
-	DbType     string `json:"db_type"`
-	ID         int    `json:"id"`
-	updateData map[string]interface{}
+	TableName  string                 `json:"table_name"`
+	DbType     string                 `json:"db_type"`
+	ID         interface{}            `json:"id"`
+	UpdateData map[string]interface{} `json:"update_data"`
 }
 
 func NewUpdateLogic(c *view.Config) Update {
@@ -25,7 +27,7 @@ func NewUpdateLogic(c *view.Config) Update {
 }
 
 func (h *Update) Update(ctx *serve.BaseContext) (resp interface{}, err error) {
-	if err := ctx.ShouldBind(&h.updateData); err != nil {
+	if err := ctx.ShouldBindJSON(h); err != nil {
 		return nil, err
 	}
 	switch h.DbType {
@@ -46,7 +48,7 @@ func (h *Update) Update(ctx *serve.BaseContext) (resp interface{}, err error) {
 
 func (h *Update) updateByGorm() error {
 
-	updateData, err := db.FixJsonData(h.updateData)
+	updateData, err := db.FixJsonData(h.UpdateData)
 	if err != nil {
 		return err
 	}
@@ -83,12 +85,21 @@ func (h *Update) updateByMongo() error {
 	_db := client.Database(idb.DBName)
 	collection := _db.Collection(h.TableName)
 
-	update, err := collection.UpdateByID(context.Background(), h.ID, h.updateData)
+	_id, err := primitive.ObjectIDFromHex(h.ID.(string))
+	if err != nil {
+		return err
+	}
+	filter := bson.D{{"_id", _id}}
+	update := bson.D{
+		{"$set", h.UpdateData},
+	}
+
+	result, err := collection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		return err
 	}
 
-	if update.ModifiedCount == 0 {
+	if result.ModifiedCount == 0 {
 		return errors.New("更新失败影响 0 列")
 	}
 

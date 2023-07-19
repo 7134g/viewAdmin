@@ -8,16 +8,18 @@ import (
 	"github.com/7134g/viewAdmin/internel/view"
 	"github.com/Masterminds/squirrel"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
+	"strconv"
 )
 
 type Delete struct {
 	cfg *view.Config
 
-	ID        int    `query:"id"`
-	TableName string `query:"table_name"`
-	DbType    string `query:"db_type"`
+	ID        string `form:"id"`
+	TableName string `form:"table_name"`
+	DbType    string `form:"db_type"`
 }
 
 func NewDeleteLogic(c *view.Config) Delete {
@@ -31,12 +33,12 @@ func (h *Delete) Delete(ctx *serve.BaseContext) (interface{}, error) {
 
 	switch h.DbType {
 	case db.MysqlType, db.SqliteType:
-		err := h.deleteByGorm(h.ID)
+		err := h.deleteByGorm()
 		if err != nil {
 			return nil, err
 		}
 	case db.MongoType:
-		err := h.deleteByMongo(h.ID)
+		err := h.deleteByMongo()
 		if err != nil {
 			return nil, err
 		}
@@ -45,8 +47,12 @@ func (h *Delete) Delete(ctx *serve.BaseContext) (interface{}, error) {
 	return "ok", nil
 }
 
-func (h *Delete) deleteByGorm(id int) error {
-	sqlScript, values, err := squirrel.Delete(h.TableName).Where("id = ?", id).ToSql()
+func (h *Delete) deleteByGorm() error {
+	_id, err := strconv.Atoi(h.ID)
+	if err != nil {
+		return err
+	}
+	sqlScript, values, err := squirrel.Delete(h.TableName).Where("id = ?", _id).ToSql()
 	if err != nil {
 		return err
 	}
@@ -67,7 +73,7 @@ func (h *Delete) deleteByGorm(id int) error {
 	return nil
 }
 
-func (h *Delete) deleteByMongo(id int) error {
+func (h *Delete) deleteByMongo() error {
 	idb, ok := h.cfg.DBS[h.DbType]
 	if !ok {
 		return errors.New("cannot find " + h.DbType)
@@ -77,7 +83,8 @@ func (h *Delete) deleteByMongo(id int) error {
 	_db := client.Database(idb.DBName)
 	collection := _db.Collection(h.TableName)
 
-	del, err := collection.DeleteOne(context.Background(), bson.D{{"_id", id}})
+	_id, err := primitive.ObjectIDFromHex(h.ID)
+	del, err := collection.DeleteOne(context.Background(), bson.D{{"_id", _id}})
 	if err != nil {
 		return err
 	}
