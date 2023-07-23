@@ -22,7 +22,7 @@ func TestRun(t *testing.T) {
 }
 
 func TestRunDebugYaml(t *testing.T) {
-	RunDebugYaml("etc/admin.yaml")
+	RunDebugYaml()
 }
 
 func TestCat(t *testing.T) {
