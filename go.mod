@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
+	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/spf13/viper v1.16.0
 	go.mongodb.org/mongo-driver v1.12.0
