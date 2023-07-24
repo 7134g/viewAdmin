@@ -7,7 +7,6 @@ import (
 	"github.com/7134g/viewAdmin/internel/serve"
 	"github.com/7134g/viewAdmin/internel/view"
 	"github.com/Masterminds/squirrel"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"gorm.io/gorm"
@@ -27,88 +26,112 @@ func NewListLogic(c *view.Config) List {
 	return List{cfg: c}
 }
 
-func (h *List) List(ctx *serve.BaseContext) (resp interface{}, err error) {
+func (h *List) List(ctx *serve.BaseContext) (resp *db.ListResponse, err error) {
 	if err := ctx.ShouldBindJSON(h); err != nil {
 		return nil, err
 	}
 
+	var list []map[string]interface{}
+	var count int64
 	switch h.DbType {
 	case db.MysqlType, db.SqliteType:
-		resp, err = h.getListByGorm(h.DbType)
+		list, count, err = h.getListByGorm(h.DbType)
 		if err != nil {
 			return nil, err
 		}
 	case db.MongoType:
-		resp, err = h.getListByMongo(h.DbType)
+		list, count, err = h.getListByMongo(h.DbType)
 		if err != nil {
 			return nil, err
 		}
+	}
+	resp = &db.ListResponse{
+		List:  list,
+		Total: count,
 	}
 
 	return resp, nil
 }
 
-func (h *List) getListByGorm(dbType string) ([]map[string]interface{}, error) {
+func (h *List) getListByGorm(dbType string) ([]map[string]interface{}, int64, error) {
+	idb, ok := h.cfg.DBS[dbType]
+	if !ok {
+		return nil, 0, errors.New("cannot find " + dbType)
+	}
+
+	// count
+	whereCondition, whereData := h.GetWhereSql()
+	countScript, values, err := squirrel.Select("count(*)").From(h.TableName).Where(
+		whereCondition, whereData...).ToSql()
+	if err != nil {
+		return nil, 0, err
+	}
+	var count int64
+	if err := idb.Conn.(*gorm.DB).Raw(countScript, values...).Scan(&count).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// list
 	rowBuilder := squirrel.Select("*").From(h.TableName)
 	orderBy := h.GetOrderBy()
 	if orderBy != "" {
 		rowBuilder = rowBuilder.OrderBy(orderBy)
 	}
-	whereCondition, whereData := h.GetWhereSql()
 	offset := h.GetOffset()
 	limit := h.GetLimit()
 	sqlScript, values, err := rowBuilder.Where(whereCondition, whereData...).Offset(offset).Limit(limit).ToSql()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	idb, ok := h.cfg.DBS[dbType]
-	if !ok {
-		return nil, errors.New("cannot find " + dbType)
-	}
-
-	var resp []map[string]interface{}
+	var result []map[string]interface{}
 	if values != nil && len(values) > 0 {
-		if err := idb.Conn.(*gorm.DB).Raw(sqlScript, values...).Scan(&resp).Error; err != nil {
-			return nil, err
+		if err := idb.Conn.(*gorm.DB).Raw(sqlScript, values...).Scan(&result).Error; err != nil {
+			return nil, 0, err
 		}
 	} else {
-		if err := idb.Conn.(*gorm.DB).Raw(sqlScript).Scan(&resp).Error; err != nil {
-			return nil, err
+		if err := idb.Conn.(*gorm.DB).Raw(sqlScript).Scan(&result).Error; err != nil {
+			return nil, 0, err
 		}
 	}
 
-	return resp, nil
+	return result, count, nil
 }
 
-func (h *List) getListByMongo(dbType string) ([]map[string]interface{}, error) {
+func (h *List) getListByMongo(dbType string) ([]map[string]interface{}, int64, error) {
 	idb, ok := h.cfg.DBS[dbType]
 	if !ok {
-		return nil, errors.New("cannot find " + dbType)
+		return nil, 0, errors.New("cannot find " + dbType)
 	}
 
 	client := idb.Conn.(*mongo.Client)
 	_db := client.Database(idb.DBName)
 	collection := _db.Collection(h.TableName)
 
-	filter := bson.M{} // todo
+	filter := h.GetWhereBson()
 	opts := options.Find().SetSkip(int64(h.GetOffset())).SetLimit(int64(h.GetLimit()))
 
 	ctx := context.Background()
-	cur, err := collection.Find(ctx, filter, opts)
+
+	count, err := collection.CountDocuments(ctx, filter)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	resp := make([]map[string]interface{}, 0)
+	cur, err := collection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	result := make([]map[string]interface{}, 0)
 	for cur.Next(ctx) {
 		var m map[string]interface{}
 		if err = cur.Decode(&m); err != nil {
 			log.Println(err)
 		}
-		resp = append(resp, m)
+		result = append(result, m)
 
 	}
 
-	return resp, err
+	return result, count, err
 }

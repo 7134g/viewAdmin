@@ -154,7 +154,7 @@ func (h *ViewTable) getTableStructByMongo(tbn []string) map[string]map[string]in
 	table := make(map[string]map[string]interface{})
 	for _, name := range tbn {
 		collection := _db.Collection(name)
-		cur, err := collection.Find(ctx, bson.D{}, options.Find())
+		cur, err := collection.Find(ctx, bson.D{}, options.Find().SetLimit(10))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -171,11 +171,14 @@ func (h *ViewTable) getTableStructByMongo(tbn []string) map[string]map[string]in
 				if !ok {
 					result[k] = fmt.Sprintf("%T", v)
 				} else {
-					result[k] = fmt.Sprintf("%T,%T", saveValue, v)
+					vType := fmt.Sprintf("%T", v)
+					if vType == saveValue {
+						continue
+					}
+					result[k] = fmt.Sprintf("%s,%s", saveValue, vType)
 				}
 
 			}
-
 		}
 		table[name] = result
 

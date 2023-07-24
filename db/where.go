@@ -3,6 +3,7 @@ package db
 import (
 	"errors"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson"
 	"strconv"
 	"strings"
 )
@@ -22,6 +23,12 @@ type MysqlQueryParams struct {
 	OrderKey  string                 `json:"order_key"`
 	OrderType OrderType              `json:"order_type"`
 	WhereSql  map[string]interface{} // key: name = ?  \  value: data
+
+}
+
+type ListResponse struct {
+	List  interface{} `json:"list"`
+	Total int64       `json:"total"`
 }
 
 func (m *MysqlQueryParams) GetOrderBy() string {
@@ -54,6 +61,14 @@ func (m *MysqlQueryParams) GetWhereSql() (string, []interface{}) {
 	}
 
 	return sqlConditions, sqlData
+}
+
+func (m *MysqlQueryParams) GetWhereBson() bson.D {
+	filter := bson.D{}
+	for k, v := range m.WhereSql {
+		filter = append(filter, bson.E{k, v})
+	}
+	return filter
 }
 
 func (m *MysqlQueryParams) GetOffset() uint64 {
