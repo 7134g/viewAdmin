@@ -1,4 +1,6 @@
 Listen: 127.0.0.1:10086
+Mode: debug # debug release test
+Front: true
 
 Mysql:
 #  Link: root:mysql@tcp(127.0.0.1:3306)/dailyfresh?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
@@ -6,11 +8,17 @@ Mysql:
   Password: mysql
   Address: 127.0.0.1:3306
   DBName: blog
+  Script: SELECT table_name FROM information_schema.tables WHERE table_schema = '%s'
 
 
-#Sqlite:
-#  Link: ./admin.db
+Sqlite:
+  Link: ./admin.sqlite3
+  Script: SELECT name FROM sqlite_master WHERE type='table'
 
 Mongo:
   Uri: mongodb://127.0.0.1:27017
   DBName: blog
+
+Redis:
+  Host: 127.0.0.1:6379
+  Script: " local keys = redis.call('SCAN', '0', 'COUNT', '100') \n return keys[2]"

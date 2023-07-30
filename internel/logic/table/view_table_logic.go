@@ -3,9 +3,10 @@ package table
 import (
 	"context"
 	"fmt"
-	"github.com/7134g/viewAdmin/db"
+	"github.com/7134g/viewAdmin/common/db"
+	"github.com/7134g/viewAdmin/config"
 	"github.com/7134g/viewAdmin/internel/serve"
-	"github.com/7134g/viewAdmin/internel/view"
+	"github.com/go-redis/redis/v8"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -15,11 +16,11 @@ import (
 )
 
 type ViewTable struct {
-	cfg    *view.Config
+	cfg    *config.Config
 	DbType string `form:"db_type,default=mysql"`
 }
 
-func NewViewTableLogic(c *view.Config) ViewTable {
+func NewViewTableLogic(c *config.Config) ViewTable {
 	return ViewTable{cfg: c}
 }
 
@@ -31,36 +32,43 @@ func (h *ViewTable) ViewTable(ctx *serve.BaseContext) (interface{}, error) {
 	table := make(map[string]map[string]interface{})
 	switch h.DbType {
 	case db.SqliteType, db.MysqlType:
-		tbn := h.getTableNameByGorm()
-		if tbn == nil {
-			return nil, nil
+		tbn, err := h.getTableNameByGorm()
+		if err != nil {
+			return nil, err
 		}
 		table = h.getTableStructByGorm(tbn)
 	case db.MongoType:
-		tbn := h.getTableNameByMongo()
-		if tbn == nil {
-			return nil, nil
+		tbn, err := h.getTableNameByMongo()
+		if err != nil {
+			return nil, err
 		}
 		table = h.getTableStructByMongo(tbn)
+	case db.RedisType:
+		tbn, err := h.getRedisKeys()
+		if err != nil {
+			return nil, err
+		}
+		table = h.getTableStructByRedis(tbn)
 	}
 
 	return table, nil
 }
 
-func (h *ViewTable) getTableNameByGorm() []string {
+// gorm
+func (h *ViewTable) getTableNameByGorm() ([]string, error) {
 	idb := h.cfg.DBS[h.DbType]
 	_db, ok := idb.Conn.(*gorm.DB)
 	if !ok {
-		return nil
+		return nil, db.DbNotConnect
 	}
 
 	tablesName := make([]string, 0)
 	err := _db.Raw(idb.Script).Scan(&tablesName).Error
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	return tablesName
+	return tablesName, nil
 }
 
 func (h *ViewTable) getTableStructByGorm(tbn []string) map[string]map[string]interface{} {
@@ -127,19 +135,20 @@ func (h *ViewTable) skip(line string) bool {
 	}
 }
 
-func (h *ViewTable) getTableNameByMongo() []string {
+// mongo
+func (h *ViewTable) getTableNameByMongo() ([]string, error) {
 	idb := h.cfg.DBS[h.DbType]
 	_db, ok := idb.Conn.(*mongo.Client)
 	if !ok {
-		return nil
+		return nil, db.DbNotConnect
 	}
 
 	collections, err := _db.Database(idb.DBName).ListCollectionNames(context.TODO(), bson.M{})
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return collections
+	return collections, nil
 }
 
 func (h *ViewTable) getTableStructByMongo(tbn []string) map[string]map[string]interface{} {
@@ -185,4 +194,89 @@ func (h *ViewTable) getTableStructByMongo(tbn []string) map[string]map[string]in
 	}
 
 	return table
+}
+
+// redis
+func (h *ViewTable) getRedisKeys() ([]string, error) {
+	idb := h.cfg.DBS[h.DbType]
+	_db, ok := idb.Conn.(*redis.Client)
+	if !ok {
+		return nil, db.DbNotConnect
+	}
+
+	keysCmd := _db.Eval(context.Background(), idb.Script, nil)
+	if err := keysCmd.Err(); err != nil {
+		log.Println("执行 redis EVAL命令失败：", err)
+		return nil, err
+	}
+
+	keys, err := keysCmd.Result()
+	if err != nil {
+		log.Println("执行 redis EVAL命令失败：", err)
+		return nil, err
+	}
+
+	result := make([]string, 0)
+	for _, key := range keys.([]interface{}) {
+		result = append(result, key.(string))
+	}
+	return result, err
+}
+
+func (h *ViewTable) getTableStructByRedis(tbn []string) map[string]map[string]interface{} {
+	idb := h.cfg.DBS[h.DbType]
+	_db, _ := idb.Conn.(*redis.Client)
+
+	// todo
+	ctx := context.Background()
+	for _, key := range tbn {
+		keyType, err := _db.Type(ctx, key).Result()
+		if err != nil {
+			log.Println("redis get type: ", err)
+			continue
+		}
+
+		var value interface{}
+		switch keyType {
+		case "string":
+			valueStringCmd := _db.Get(ctx, key)
+			if result, err := valueStringCmd.Result(); err != nil {
+				log.Printf("无法获取字符串键 %s 的值：%v\n", key, err)
+				continue
+			} else {
+				value = result
+			}
+
+		case "list":
+			valueListCmd := _db.LRange(ctx, key, 0, -1)
+			if err := valueListCmd.Err(); err != nil {
+				log.Printf("无法获取列表键 %s 的值：%v\n", key, err)
+				continue
+			}
+
+			result, _ := valueListCmd.Result()
+			value = result
+
+		case "set":
+			valueSetCmd := _db.SMembers(ctx, key)
+			if err := valueSetCmd.Err(); err != nil {
+				log.Printf("无法获取集合键 %s 的值")
+				continue
+			}
+			result, _ := valueSetCmd.Result()
+			value = result
+		case "hash":
+			result, err := _db.HGetAll(ctx, key).Result()
+			if err != nil {
+				log.Println("redis get:", err)
+				continue
+			}
+			value = result
+		}
+
+		fmt.Println(value)
+
+	}
+
+	return nil
 }

@@ -3,16 +3,16 @@ package table
 import (
 	"context"
 	"errors"
-	"github.com/7134g/viewAdmin/db"
+	db2 "github.com/7134g/viewAdmin/common/db"
+	"github.com/7134g/viewAdmin/config"
 	"github.com/7134g/viewAdmin/internel/serve"
-	"github.com/7134g/viewAdmin/internel/view"
 	"github.com/Masterminds/squirrel"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
 )
 
 type Insert struct {
-	cfg *view.Config
+	cfg *config.Config
 
 	TableName string `json:"table_name"`
 	DbType    string `json:"db_type,default=mysql"`
@@ -20,7 +20,7 @@ type Insert struct {
 	InsertData map[string]interface{} `json:"insert_data"`
 }
 
-func NewInsertLogic(c *view.Config) Insert {
+func NewInsertLogic(c *config.Config) Insert {
 	return Insert{cfg: c, InsertData: map[string]interface{}{}}
 }
 
@@ -28,18 +28,18 @@ func (h *Insert) Insert(ctx *serve.BaseContext) (interface{}, error) {
 	if err := ctx.ShouldBindJSON(h); err != nil {
 		return nil, err
 	}
-	insertData, err := db.FixJsonData(h.InsertData)
+	insertData, err := db2.FixJsonData(h.InsertData)
 	if err != nil {
 		return nil, err
 	}
 
 	switch h.DbType {
-	case db.MysqlType, db.SqliteType:
+	case db2.MysqlType, db2.SqliteType:
 		err := h.insertByGorm(insertData)
 		if err != nil {
 			return nil, err
 		}
-	case db.MongoType:
+	case db2.MongoType:
 		err := h.insertByMongo(insertData)
 		if err != nil {
 			return nil, err

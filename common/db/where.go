@@ -15,7 +15,7 @@ const (
 	Asc  = "asc"
 )
 
-type MysqlQueryParams struct {
+type GormQueryParams struct {
 	//squirrel.SelectBuilder
 
 	Page      int                    `json:"page"`
@@ -31,7 +31,7 @@ type ListResponse struct {
 	Total int64       `json:"total"`
 }
 
-func (m *MysqlQueryParams) GetOrderBy() string {
+func (m *GormQueryParams) GetOrderBy() string {
 	var orderType string
 	switch m.OrderType {
 	case 1:
@@ -45,7 +45,7 @@ func (m *MysqlQueryParams) GetOrderBy() string {
 	return fmt.Sprintf("%s %s", m.OrderKey, orderType)
 }
 
-func (m *MysqlQueryParams) GetWhereSql() (string, []interface{}) {
+func (m *GormQueryParams) GetWhereSql() (string, []interface{}) {
 	link := " AND "
 	sqlConditions := ""
 	sqlData := make([]interface{}, 0)
@@ -63,7 +63,7 @@ func (m *MysqlQueryParams) GetWhereSql() (string, []interface{}) {
 	return sqlConditions, sqlData
 }
 
-func (m *MysqlQueryParams) GetWhereBson() bson.D {
+func (m *GormQueryParams) GetWhereBson() bson.D {
 	filter := bson.D{}
 	for k, v := range m.WhereSql {
 		filter = append(filter, bson.E{k, v})
@@ -71,7 +71,7 @@ func (m *MysqlQueryParams) GetWhereBson() bson.D {
 	return filter
 }
 
-func (m *MysqlQueryParams) GetOffset() uint64 {
+func (m *GormQueryParams) GetOffset() uint64 {
 	if m.Page < 1 {
 		m.Page = 1
 	}
@@ -82,7 +82,7 @@ func (m *MysqlQueryParams) GetOffset() uint64 {
 	return uint64((m.Page - 1) * m.Size)
 }
 
-func (m *MysqlQueryParams) GetLimit() uint64 {
+func (m *GormQueryParams) GetLimit() uint64 {
 	return uint64(m.Size)
 }
 

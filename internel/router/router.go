@@ -2,8 +2,8 @@ package router
 
 import (
 	_ "embed"
+	"github.com/7134g/viewAdmin/config"
 	"github.com/7134g/viewAdmin/internel/handle"
-	"github.com/7134g/viewAdmin/internel/view"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -17,16 +17,29 @@ var (
 	js []byte
 )
 
-func InitRouter(r *gin.Engine, c *view.Config) {
-	r.GET("/", func(c *gin.Context) {
-		c.Data(http.StatusOK, "text/html; charset=utf-8", html)
-	})
-	r.GET("/assets/index-dac6ce4d.css", func(c *gin.Context) {
-		c.Data(http.StatusOK, "text/css; charset=utf-8", css)
-	})
-	r.GET("/assets/index-e2a54b59.js", func(c *gin.Context) {
-		c.Data(http.StatusOK, "application/javascript", js)
-	})
+func InitRouter(r *gin.Engine, c *config.Config) {
+	switch c.Mode {
+	case gin.DebugMode:
+		gin.SetMode(gin.DebugMode)
+	case gin.ReleaseMode:
+		gin.SetMode(gin.ReleaseMode)
+	case gin.TestMode:
+		gin.SetMode(gin.TestMode)
+	default:
+		panic(c.Mode)
+	}
+
+	if c.Front {
+		r.GET("/", func(c *gin.Context) {
+			c.Data(http.StatusOK, "text/html; charset=utf-8", html)
+		})
+		r.GET("/assets/index-dac6ce4d.css", func(c *gin.Context) {
+			c.Data(http.StatusOK, "text/css; charset=utf-8", css)
+		})
+		r.GET("/assets/index-e2a54b59.js", func(c *gin.Context) {
+			c.Data(http.StatusOK, "application/javascript", js)
+		})
+	}
 
 	baseApi := r.Group("/")
 

@@ -3,9 +3,9 @@ package table
 import (
 	"context"
 	"errors"
-	"github.com/7134g/viewAdmin/db"
+	db2 "github.com/7134g/viewAdmin/common/db"
+	"github.com/7134g/viewAdmin/config"
 	"github.com/7134g/viewAdmin/internel/serve"
-	"github.com/7134g/viewAdmin/internel/view"
 	"github.com/Masterminds/squirrel"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -14,7 +14,7 @@ import (
 )
 
 type Update struct {
-	cfg *view.Config
+	cfg *config.Config
 
 	TableName  string                 `json:"table_name"`
 	DbType     string                 `json:"db_type,default=mysql"`
@@ -22,7 +22,7 @@ type Update struct {
 	UpdateData map[string]interface{} `json:"update_data"`
 }
 
-func NewUpdateLogic(c *view.Config) Update {
+func NewUpdateLogic(c *config.Config) Update {
 	return Update{cfg: c}
 }
 
@@ -31,12 +31,12 @@ func (h *Update) Update(ctx *serve.BaseContext) (resp interface{}, err error) {
 		return nil, err
 	}
 	switch h.DbType {
-	case db.MysqlType, db.SqliteType:
+	case db2.MysqlType, db2.SqliteType:
 		err = h.updateByGorm()
 		if err != nil {
 			return nil, err
 		}
-	case db.MongoType:
+	case db2.MongoType:
 		err = h.updateByMongo()
 		if err != nil {
 			return nil, err
@@ -48,7 +48,7 @@ func (h *Update) Update(ctx *serve.BaseContext) (resp interface{}, err error) {
 
 func (h *Update) updateByGorm() error {
 
-	updateData, err := db.FixJsonData(h.UpdateData)
+	updateData, err := db2.FixJsonData(h.UpdateData)
 	if err != nil {
 		return err
 	}

@@ -3,8 +3,8 @@ package viewAdmin
 import (
 	_ "embed"
 	"fmt"
+	"github.com/7134g/viewAdmin/config"
 	"github.com/7134g/viewAdmin/internel/router"
-	"github.com/7134g/viewAdmin/internel/view"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -18,14 +18,14 @@ func Cat() {
 	fmt.Println(baseYaml)
 }
 
-func Run(c *view.Config) {
+func Run(c *config.Config) {
 	gin.SetMode(gin.ReleaseMode)
 	run(c)
 }
 
 // RunDebug 打开接口日志和数据库日志
-func RunDebug(c *view.Config) {
-	view.OpenLogDB()
+func RunDebug(c *config.Config) {
+	config.OpenLogDB()
 	gin.SetMode(gin.DebugMode)
 
 	run(c)
@@ -33,7 +33,7 @@ func RunDebug(c *view.Config) {
 
 // RunDebugYaml 通过配置打开接口日志和数据库日志
 func RunDebugYaml(etc ...string) {
-	view.OpenLogDB()
+	config.OpenLogDB()
 	gin.SetMode(gin.DebugMode)
 
 	var cfgPath string
@@ -46,11 +46,11 @@ func RunDebugYaml(etc ...string) {
 	if f, err := os.Stat(cfgPath); err != nil || f == nil {
 		log.Fatal("cfgPath error: ", err)
 	}
-	c := view.InitConfig(cfgPath)
+	c := config.InitConfig(cfgPath)
 	run(c)
 }
 
-func run(c *view.Config) {
+func run(c *config.Config) {
 	serve := gin.Default()
 	serve.Use(cors.Default())
 

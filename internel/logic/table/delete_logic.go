@@ -3,9 +3,9 @@ package table
 import (
 	"context"
 	"errors"
-	"github.com/7134g/viewAdmin/db"
+	"github.com/7134g/viewAdmin/common/db"
+	"github.com/7134g/viewAdmin/config"
 	"github.com/7134g/viewAdmin/internel/serve"
-	"github.com/7134g/viewAdmin/internel/view"
 	"github.com/Masterminds/squirrel"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -15,14 +15,14 @@ import (
 )
 
 type Delete struct {
-	cfg *view.Config
+	cfg *config.Config
 
 	ID        string `form:"id"`
 	TableName string `form:"table_name"`
 	DbType    string `form:"db_type,default=mysql"`
 }
 
-func NewDeleteLogic(c *view.Config) Delete {
+func NewDeleteLogic(c *config.Config) Delete {
 	return Delete{cfg: c}
 }
 

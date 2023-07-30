@@ -5,6 +5,6 @@ import (
 )
 
 func main() {
-	viewAdmin.RunDebugYaml("E:\\documents\\Go\\_programe\\TestFile\\viewAdmin\\etc\\admin.yaml")
+	viewAdmin.RunDebugYaml("E:\\documents\\Go\\_programe\\viewAdmin\\etc\\admin.yaml")
 	//viewAdmin.RunDebugYaml()
 }

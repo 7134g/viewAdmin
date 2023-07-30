@@ -1,15 +1,15 @@
 package handle
 
 import (
+	"github.com/7134g/viewAdmin/config"
 	"github.com/7134g/viewAdmin/internel/logic"
 	"github.com/7134g/viewAdmin/internel/logic/table"
 	"github.com/7134g/viewAdmin/internel/serve"
-	"github.com/7134g/viewAdmin/internel/view"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
-func HomeHandler(cfg *view.Config) gin.HandlerFunc {
+func HomeHandler(cfg *config.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		baseContext := &serve.BaseContext{ctx}
 		home := logic.NewHomeLogic(cfg)
@@ -23,7 +23,7 @@ func HomeHandler(cfg *view.Config) gin.HandlerFunc {
 
 }
 
-func ViewTableHandler(cfg *view.Config) gin.HandlerFunc {
+func ViewTableHandler(cfg *config.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		baseContext := &serve.BaseContext{ctx}
 		vb := table.NewViewTableLogic(cfg)
@@ -36,7 +36,7 @@ func ViewTableHandler(cfg *view.Config) gin.HandlerFunc {
 	}
 }
 
-func ListHandler(cfg *view.Config) gin.HandlerFunc {
+func ListHandler(cfg *config.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		baseContext := &serve.BaseContext{ctx}
 		vb := table.NewListLogic(cfg)
@@ -49,7 +49,7 @@ func ListHandler(cfg *view.Config) gin.HandlerFunc {
 	}
 }
 
-func InsertHandler(cfg *view.Config) gin.HandlerFunc {
+func InsertHandler(cfg *config.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		baseContext := &serve.BaseContext{ctx}
 		vb := table.NewInsertLogic(cfg)
@@ -62,7 +62,7 @@ func InsertHandler(cfg *view.Config) gin.HandlerFunc {
 	}
 }
 
-func UpdateHandler(cfg *view.Config) gin.HandlerFunc {
+func UpdateHandler(cfg *config.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		baseContext := &serve.BaseContext{ctx}
 		vb := table.NewUpdateLogic(cfg)
@@ -75,7 +75,7 @@ func UpdateHandler(cfg *view.Config) gin.HandlerFunc {
 	}
 }
 
-func DeleteHandler(cfg *view.Config) gin.HandlerFunc {
+func DeleteHandler(cfg *config.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		baseContext := &serve.BaseContext{ctx}
 		vb := table.NewDeleteLogic(cfg)

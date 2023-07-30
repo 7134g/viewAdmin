@@ -1,15 +1,15 @@
 package logic
 
 import (
+	"github.com/7134g/viewAdmin/config"
 	"github.com/7134g/viewAdmin/internel/serve"
-	"github.com/7134g/viewAdmin/internel/view"
 )
 
 type Home struct {
-	cfg *view.Config
+	cfg *config.Config
 }
 
-func NewHomeLogic(c *view.Config) Home {
+func NewHomeLogic(c *config.Config) Home {
 	return Home{cfg: c}
 }
 

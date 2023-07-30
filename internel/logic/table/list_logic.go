@@ -3,9 +3,9 @@ package table
 import (
 	"context"
 	"errors"
-	"github.com/7134g/viewAdmin/db"
+	db2 "github.com/7134g/viewAdmin/common/db"
+	"github.com/7134g/viewAdmin/config"
 	"github.com/7134g/viewAdmin/internel/serve"
-	"github.com/7134g/viewAdmin/internel/view"
 	"github.com/Masterminds/squirrel"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -14,19 +14,19 @@ import (
 )
 
 type List struct {
-	cfg *view.Config
+	cfg *config.Config
 
 	TableName string `json:"table_name"`
 	DbType    string `json:"db_type,default=mysql"`
 
-	db.MysqlQueryParams
+	db2.GormQueryParams
 }
 
-func NewListLogic(c *view.Config) List {
+func NewListLogic(c *config.Config) List {
 	return List{cfg: c}
 }
 
-func (h *List) List(ctx *serve.BaseContext) (resp *db.ListResponse, err error) {
+func (h *List) List(ctx *serve.BaseContext) (resp *db2.ListResponse, err error) {
 	if err := ctx.ShouldBindJSON(h); err != nil {
 		return nil, err
 	}
@@ -34,18 +34,18 @@ func (h *List) List(ctx *serve.BaseContext) (resp *db.ListResponse, err error) {
 	var list []map[string]interface{}
 	var count int64
 	switch h.DbType {
-	case db.MysqlType, db.SqliteType:
+	case db2.MysqlType, db2.SqliteType:
 		list, count, err = h.getListByGorm(h.DbType)
 		if err != nil {
 			return nil, err
 		}
-	case db.MongoType:
+	case db2.MongoType:
 		list, count, err = h.getListByMongo(h.DbType)
 		if err != nil {
 			return nil, err
 		}
 	}
-	resp = &db.ListResponse{
+	resp = &db2.ListResponse{
 		List:  list,
 		Total: count,
 	}
